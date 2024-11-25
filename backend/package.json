@@ -10,7 +10,10 @@
         "test": "jest",
         "prisma:init": "npx prisma init",
         "prisma:generate": "npx prisma generate",
-        "start:prod": "npm run build && npm start"
+        "start:prod": "npm run build && npm start",
+        
+        "test:setup": "npx prisma migrate reset --force --preview-feature --skip-seed && npx prisma migrate deploy",
+        "test:integration": "npm run test:setup && jest tests-RJD.integration.test.ts"
     },
     "keywords": [],
     "author": "",

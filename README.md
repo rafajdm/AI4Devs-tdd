@@ -149,6 +149,39 @@ POST http://localhost:3010/candidates
     }
 }
 ```
+
+## Testing
+
+The project uses Jest for both unit and integration testing. Tests are organized as follows:
+
+### Unit Tests
+Located in `backend/src/__tests__/tests-RJD.test.ts`:
+- Validation layer tests
+- Service layer tests
+- Controller layer tests
+
+### Integration Tests
+Located in `backend/src/__tests__/tests-RJD.integration.test.ts`:
+- Full flow testing from API to database
+- Relationship persistence testing
+- Error handling and rollback testing
+
+### Running Tests
+
+1. Unit Tests:
+```sh
+cd backend
+npm test
+```
+
+2. Integration Tests
+
+```sh
+cd backend
+npm run test:integration
+```
+Note: Integration tests require a running PostgreSQL instance and proper database configuration in .env.test.
+
 -------------------------------------------------------------
 
 # LTI - Sistema de Seguimiento de Talento | ES

@@ -3,53 +3,126 @@ import { validateCandidateData } from '../validator';
 import { Education } from '../../domain/models/Education';
 import { WorkExperience } from '../../domain/models/WorkExperience';
 import { Resume } from '../../domain/models/Resume';
+import { PrismaClient } from '@prisma/client';
 
-export const addCandidate = async (candidateData: any) => {
-    try {
-        validateCandidateData(candidateData); // Validar los datos del candidato
-    } catch (error: any) {
-        throw new Error(error);
+export class CandidateService {
+    private prismaClient: PrismaClient;
+
+    constructor(prismaClient: PrismaClient) {
+        this.prismaClient = prismaClient;
     }
 
-    const candidate = new Candidate(candidateData); // Crear una instancia del modelo Candidate
-    try {
-        const savedCandidate = await candidate.save(); // Guardar el candidato en la base de datos
-        const candidateId = savedCandidate.id; // Obtener el ID del candidato guardado
+    async addCandidate(candidateData: any) {
+        try {
+            validateCandidateData(candidateData);
+        } catch (error: any) {
+            throw new Error(error);
+        }
 
-        // Guardar la educación del candidato
-        if (candidateData.educations) {
-            for (const education of candidateData.educations) {
-                const educationModel = new Education(education);
-                educationModel.candidateId = candidateId;
-                await educationModel.save();
-                candidate.education.push(educationModel);
+        const candidate = new Candidate(candidateData);
+        try {
+            const savedCandidate = await candidate.save();
+            const candidateId = savedCandidate.id;
+
+            if (candidateData.educations) {
+                for (const education of candidateData.educations) {
+                    const educationModel = new Education(education);
+                    educationModel.candidateId = candidateId;
+                    await educationModel.save();
+                    candidate.education.push(educationModel);
+                }
             }
-        }
 
-        // Guardar la experiencia laboral del candidato
-        if (candidateData.workExperiences) {
-            for (const experience of candidateData.workExperiences) {
-                const experienceModel = new WorkExperience(experience);
-                experienceModel.candidateId = candidateId;
-                await experienceModel.save();
-                candidate.workExperience.push(experienceModel);
+            if (candidateData.workExperiences) {
+                for (const experience of candidateData.workExperiences) {
+                    const experienceModel = new WorkExperience(experience);
+                    experienceModel.candidateId = candidateId;
+                    await experienceModel.save();
+                    candidate.workExperience.push(experienceModel);
+                }
             }
-        }
 
-        // Guardar los archivos de CV
-        if (candidateData.cv && Object.keys(candidateData.cv).length > 0) {
-            const resumeModel = new Resume(candidateData.cv);
-            resumeModel.candidateId = candidateId;
-            await resumeModel.save();
-            candidate.resumes.push(resumeModel);
-        }
-        return savedCandidate;
-    } catch (error: any) {
-        if (error.code === 'P2002') {
-            // Unique constraint failed on the fields: (`email`)
-            throw new Error('The email already exists in the database');
-        } else {
+            if (candidateData.cv && Object.keys(candidateData.cv).length > 0) {
+                const resumeModel = new Resume(candidateData.cv);
+                resumeModel.candidateId = candidateId;
+                await resumeModel.save();
+                candidate.resumes.push(resumeModel);
+            }
+            return savedCandidate;
+        } catch (error: any) {
+            if (error.code === 'P2002') {
+                throw new Error('The email already exists in the database');
+            }
             throw error;
         }
     }
+
+    async updateCandidate(updateData: any) {
+        try {
+            const candidate = await Candidate.findOne(updateData.id);
+            if (!candidate) {
+                throw new Error('Candidate not found');
+            }
+    
+            // Start a transaction
+            return await this.prismaClient.$transaction(async (prisma) => {
+                // Delete existing relations if they are being updated
+                if (updateData.educations) {
+                    await prisma.education.deleteMany({
+                        where: { candidateId: updateData.id }
+                    });
+                }
+                
+                if (updateData.workExperiences) {
+                    await prisma.workExperience.deleteMany({
+                        where: { candidateId: updateData.id }
+                    });
+                }
+    
+                // Update candidate with new data
+                const updatedCandidate = await prisma.candidate.update({
+                    where: { id: updateData.id },
+                    data: {
+                        firstName: updateData.firstName,
+                        lastName: updateData.lastName,
+                        ...(updateData.educations && {
+                            educations: {
+                                create: updateData.educations.map((edu: any) => ({
+                                    institution: edu.institution,
+                                    title: edu.title,
+                                    startDate: new Date(edu.startDate),
+                                    endDate: edu.endDate ? new Date(edu.endDate) : null
+                                }))
+                            }
+                        }),
+                        ...(updateData.workExperiences && {
+                            workExperiences: {
+                                create: updateData.workExperiences.map((exp: any) => ({
+                                    company: exp.company,
+                                    position: exp.position,
+                                    description: exp.description,
+                                    startDate: new Date(exp.startDate),
+                                    endDate: exp.endDate ? new Date(exp.endDate) : null
+                                }))
+                            }
+                        })
+                    },
+                    include: {
+                        educations: true,
+                        workExperiences: true
+                    }
+                });
+    
+                return updatedCandidate;
+            });
+        } catch (error: any) {
+            throw error;
+        }
+    }
+}
+
+// Keep the function export for backward compatibility
+export const addCandidate = async (candidateData: any) => {
+    const service = new CandidateService(new PrismaClient());
+    return service.addCandidate(candidateData);
 };

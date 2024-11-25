@@ -1,9 +1,19 @@
-const NAME_REGEX = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/;
+const NAME_REGEX = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ\- ]+$/;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_REGEX = /^(6|7|9)\d{8}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 //Length validations according to the database schema
+
+const validateDateOrder = (startDate: string, endDate?: string) => {
+    if (endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (end < start) {
+            throw new Error('Invalid date order');
+        }
+    }
+};
 
 const validateName = (name: string) => {
     if (!name || name.length < 2 || name.length > 100 || !NAME_REGEX.test(name)) {
@@ -45,9 +55,9 @@ const validateEducation = (education: any) => {
     }
 
     validateDate(education.startDate);
-
-    if (education.endDate && !DATE_REGEX.test(education.endDate)) {
-        throw new Error('Invalid end date');
+    if (education.endDate) {
+        validateDate(education.endDate);
+        validateDateOrder(education.startDate, education.endDate);
     }
 };
 
@@ -65,14 +75,14 @@ const validateExperience = (experience: any) => {
     }
 
     validateDate(experience.startDate);
-
-    if (experience.endDate && !DATE_REGEX.test(experience.endDate)) {
-        throw new Error('Invalid end date');
+    if (experience.endDate) {
+        validateDate(experience.endDate);
+        validateDateOrder(experience.startDate, experience.endDate);
     }
 };
 
 const validateCV = (cv: any) => {
-    if (typeof cv !== 'object' || !cv.filePath || typeof cv.filePath !== 'string' || !cv.fileType || typeof cv.fileType !== 'string') {
+    if (!cv || typeof cv !== 'object' || !cv.filePath || typeof cv.filePath !== 'string' || !cv.fileType || typeof cv.fileType !== 'string') {
         throw new Error('Invalid CV data');
     }
 };
@@ -101,7 +111,7 @@ export const validateCandidateData = (data: any) => {
         }
     }
 
-    if (data.cv && Object.keys(data.cv).length > 0) {
+    if (data.cv) {
         validateCV(data.cv);
     }
 };
