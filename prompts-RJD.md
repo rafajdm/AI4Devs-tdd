@@ -706,3 +706,18 @@
       - `main.yml` is correctly placed
       - Following GitHub Actions directory structure
       - Ensuring proper CI/CD configuration
+
+96. **Lets proceed with running the ci/cd pipeline**
+    - Response: Running CI/CD pipeline:
+      - Committing and pushing changes to GitHub
+      - Triggering GitHub Actions workflow
+      - Verifying pipeline execution
+      - Ensuring test and build steps
+      - Following CI/CD best practices
+
+97. **Running CI/CD pipeline its showing an error on my frontend that says [eslint] src/components/AddCandidateForm.js Line 2:31: 'InputGroup' is defined but never used no-unused-vars**
+    - Response: Fixing ESLint error:
+      - Removing unused import
+      - Ensuring clean code
+      - Following ESLint rules
+      - Maintaining code quality
